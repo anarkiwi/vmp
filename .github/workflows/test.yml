@@ -1,0 +1,15 @@
+name: test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: build 
+      run: |
+        export DEBIAN_FRONTEND=noninteractive && \
+        echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
+        sudo apt-get update && \
+        sudo apt-get install -yq --no-install-recommends cc65 vice && \
+        make
