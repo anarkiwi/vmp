@@ -10,31 +10,11 @@
 #define SIDVOICEREGSIZE 7
 #define SIDVOL(x, v)	(*(x+24) = v)
 
-typedef struct {
-  unsigned char *sid;
-  unsigned char *voice;
-} baseptrs;
-
-#define BASEPTRS(x, y) { x, x + ((y - 1) * SIDVOICEREGSIZE) }
-#define NULLBASEPTRS	BASEPTRS((unsigned char *)NULL, 0)
+#define BASEPTR(x, y)	{ x + ((y - 1) * SIDVOICEREGSIZE) }
 
 // Configure MIDI channel to SID voice mappings.
-#define SID1		((unsigned char*)0xd400)
-const baseptrs voicebase[] = {
-			      BASEPTRS(SID1, 1), // SID1, voice 1 is on channel 1
-			      BASEPTRS(SID1, 2), // SID1, voice 2 is on channel 2
-			      BASEPTRS(SID1, 3), // SID1, voice 3 is on channel 3
-			      NULLBASEPTRS, // remaining MIDI channels not used.
-			      NULLBASEPTRS,
-			      NULLBASEPTRS,
-			      NULLBASEPTRS,
-			      NULLBASEPTRS,
-			      NULLBASEPTRS,
-			      NULLBASEPTRS,
-			      NULLBASEPTRS,
-			      NULLBASEPTRS,
-			      NULLBASEPTRS,
-			      NULLBASEPTRS,
-			      NULLBASEPTRS,
-			      NULLBASEPTRS,
-};
+#define SID1            ((unsigned char*)0xd400)
+const struct {
+  const unsigned char *sid[MIDICHANNELS];
+  const unsigned char *voice[MIDICHANNELS];
+} baseptrs = {{ SID1, SID1, SID1 }, { BASEPTR(SID1, 1), BASEPTR(SID1, 2), BASEPTR(SID1, 3) }};

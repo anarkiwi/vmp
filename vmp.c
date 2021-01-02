@@ -21,7 +21,7 @@ void initvessel(void) {
 
   VOUT;
   for (i = 0; i < MIDICHANNELS; ++i) {
-    sidreg = (unsigned char*)voicebase[i].sid;
+    sidreg = (unsigned char*)baseptrs.sid[i];
     chmask >>= 1;
     if (sidreg != NULL) {
       chmask |= 0x8000;
@@ -40,7 +40,7 @@ void initsid(void) {
   unsigned char *sidreg = NULL;
 
   for (i = 0; i < MIDICHANNELS; ++i) {
-    sidreg = (unsigned char*)voicebase[i].sid;
+    sidreg = (unsigned char*)baseptrs.sid[i];
     if (sidreg != NULL) {
       for (j = 0; j < SIDREGSIZE; ++j) {
 	sidreg[j] = 0;
@@ -49,7 +49,7 @@ void initsid(void) {
     }
   }
   for (i = 0; i < MIDICHANNELS; ++i) {
-    sidreg = (unsigned char*)voicebase[i].voice;
+    sidreg = (unsigned char*)baseptrs.voice[i];
     if (sidreg != NULL) {
       sidreg[4] = 0x10; // Triangle
       sidreg[5] = 0b00000000; // No attack, no decay
@@ -64,7 +64,7 @@ void init(void) {
 }
 
 void handlenoteoff(unsigned char ch, unsigned char p, unsigned char v) {
-  unsigned char *voicereg = (unsigned char*)voicebase[ch].voice;
+  unsigned char *voicereg = (unsigned char*)baseptrs.voice[ch];
   if (voicereg == NULL) {
     return;
   }
@@ -72,7 +72,7 @@ void handlenoteoff(unsigned char ch, unsigned char p, unsigned char v) {
 }
 
 void handlenoteon(unsigned char ch, unsigned char p, unsigned char v) {
-  unsigned char *voicereg = (unsigned char*)voicebase[ch].voice;
+  unsigned char *voicereg = (unsigned char*)baseptrs.voice[ch];
   if (voicereg == NULL) {
     return;
   }
