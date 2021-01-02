@@ -54,3 +54,6 @@ dkms.conf
 # C64 output
 *.prg
 *.d64
+
+# backup
+*~
