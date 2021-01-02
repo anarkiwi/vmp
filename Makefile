@@ -8,3 +8,6 @@ vmp.prg: vmp.c freq.h midi.h sid.h vessel.h
 
 vmp.d64: vmp.prg
 	c1541 -format diskname,id d64 vmp.d64 -attach vmp.d64 -write vmp.prg vmp
+
+upload: all
+	ncftpput -p "" -Cv c64 vmp.d64 /Temp/vmp.d64
