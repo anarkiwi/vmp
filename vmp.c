@@ -43,7 +43,7 @@ void initsid(void) {
     sidreg = (unsigned char*)voicebase[i].sid;
     if (sidreg != NULL) {
       for (j = 0; j < SIDREGSIZE; ++j) {
-	*(sidreg + j) = 0;
+	sidreg[j] = 0;
       }
       SIDVOL(sidreg, 0xf);
     }
@@ -51,9 +51,9 @@ void initsid(void) {
   for (i = 0; i < MIDICHANNELS; ++i) {
     sidreg = (unsigned char*)voicebase[i].voice;
     if (sidreg != NULL) {
-      *(sidreg+4) = 0x10; // Triangle
-      *(sidreg+5) = 0b00000000; // No attack, no decay
-      *(sidreg+6) = 0b11110000; // Max sustain, no release
+      sidreg[4] = 0x10; // Triangle
+      sidreg[5] = 0b00000000; // No attack, no decay
+      sidreg[6] = 0b11110000; // Max sustain, no release
     }
   }
 }
@@ -68,7 +68,7 @@ void handlenoteoff(unsigned char ch, unsigned char p, unsigned char v) {
   if (voicereg == NULL) {
     return;
   }
-  *(voicereg+4) = 0x10; // Triangle
+  voicereg[4] = 0x10; // Triangle
 }
 
 void handlenoteon(unsigned char ch, unsigned char p, unsigned char v) {
@@ -79,9 +79,9 @@ void handlenoteon(unsigned char ch, unsigned char p, unsigned char v) {
   if (v == 0) {
     handlenoteoff(ch, p, 0);
   } else {
-    *voicereg = ptosflo[p];
-    *(voicereg+1) = ptosfhi[p];
-    *(voicereg+4) = 0x11; // Gate on
+    voicereg[0] = ptosflo[p];
+    voicereg[1] = ptosfhi[p];
+    voicereg[4] = 0x11; // Gate on
   }
 }
 
