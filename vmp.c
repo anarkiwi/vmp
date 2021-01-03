@@ -15,9 +15,10 @@
 
 #define SCREENMEM       ((unsigned char*)0x0400)
 
+unsigned char i = 0;
+unsigned char j = 0;
 
 void initvessel(void) {
-  register unsigned char i = 0;
   unsigned char *sidreg = NULL;
   unsigned chmask = 0;
 
@@ -54,8 +55,6 @@ void defaultvoice(unsigned char ch, unsigned char *voicereg) {
 }
 
 void initsid(void) {
-  register unsigned char i = 0;
-  register unsigned char j = 0;
   unsigned char *sidreg = NULL;
 
   for (i = 0; i < MIDICHANNELS; ++i) {
@@ -100,6 +99,15 @@ void handlenoteon(unsigned char ch, unsigned char *voicereg, unsigned char p, un
 
 void handlecc(unsigned char ch, unsigned char *voicereg, unsigned char cc, unsigned char v) {
   switch (cc) {
+  case 73:
+    {
+      if (v > 0x0f) {
+	v = 0x0f;
+      }
+      voicestate.attackdecay[ch] &= 0x0f;
+      voicestate.attackdecay[ch] |= (v << 4);
+    }
+    break;
   case 72:
     {
       if (v > 0x0f) {
@@ -116,7 +124,6 @@ void handlecc(unsigned char ch, unsigned char *voicereg, unsigned char cc, unsig
 
 void midiloop(void) {
   register unsigned char bc = 0;
-  register unsigned char i = 0;
   unsigned char ch = 0;
   unsigned char *voicereg = NULL;
 
