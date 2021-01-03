@@ -40,19 +40,21 @@ void initvessel(void) {
 void updatevoice(unsigned char ch, unsigned char *voicereg) {
   voicereg[0] = voicestate.lo[ch];
   voicereg[1] = voicestate.hi[ch];
+  voicereg[2] = voicestate.pwmlo[ch];
+  voicereg[3] = voicestate.pwmhi[ch];
   voicereg[5] = voicestate.attackdecay[ch];
   voicereg[6] = voicestate.sustainrelease[ch];
-  voicereg[3] = voicestate.pwmhi[ch];
   voicereg[4] = voicestate.control[ch];
 }
 
 void defaultvoice(unsigned char ch, unsigned char *voicereg) {
-  voicestate.control[ch] = 0x10; // Triangle
-  voicestate.attackdecay[ch] = 0b00000000; // No attack, no decay
-  voicestate.sustainrelease[ch] = 0b11110000; // Max sustain, no release
   voicestate.lo[ch] = 0;
   voicestate.hi[ch] = 0;
+  voicestate.pwmlo[ch] = 0;
   voicestate.pwmhi[ch] = 0;
+  voicestate.attackdecay[ch] = 0b00000000; // No attack, no decay
+  voicestate.sustainrelease[ch] = 0b11110000; // Max sustain, no release
+  voicestate.control[ch] = 0x10; // Triangle
   updatevoice(ch, voicereg);
 }
 
@@ -99,36 +101,35 @@ void handlenoteon(unsigned char ch, unsigned char *voicereg, unsigned char p, un
   }
 }
 
+#define CCHINIB(x, y) { if (y > 0x0f) { y = 0x0f; } x &= 0x0f; x |= (y << 4); }
+#define CCLONIB(x, y) { if (y > 0x0f) { y = 0x0f; } x &= 0xf0; x |= (y & 0x0f); }
+
 void handlecc(unsigned char ch, unsigned char *voicereg, unsigned char cc, unsigned char v) {
   switch (cc) {
-  case 85:
+  case 85: // control
     {
       voicestate.control[ch] &= 0x1;
       voicestate.control[ch] |= (v << 1);
     }
     break;
-  case 20:
+  case 75: // decay
+    CCLONIB(voicestate.attackdecay[ch], v);
+    break;
+  case 74: // sustain
+    CCHINIB(voicestate.sustainrelease[ch], v);
+    break;
+  case 73: // attack
+    CCHINIB(voicestate.attackdecay[ch], v);
+    break;
+  case 72: // release
+    CCLONIB(voicestate.sustainrelease[ch], v);
+    break;
+  case 31: // pwm
     {
-      voicestate.pwmhi[ch] = (v << 1);
+      voicestate.pwmhi[ch] = (v >> 4);
+      voicestate.pwmlo[ch] = ((v & 0b00000111) << 5);
       voicereg[3] = voicestate.pwmhi[ch];
-    }
-    break;
-  case 73:
-    {
-      if (v > 0x0f) {
-	v = 0x0f;
-      }
-      voicestate.attackdecay[ch] &= 0x0f;
-      voicestate.attackdecay[ch] |= (v << 4);
-    }
-    break;
-  case 72:
-    {
-      if (v > 0x0f) {
-	v = 0x0f;
-      }
-      voicestate.sustainrelease[ch] &= 0xf0;
-      voicestate.sustainrelease[ch] |= (v & 0x0f);
+      voicereg[2] = voicestate.pwmlo[ch];
     }
     break;
   default:
