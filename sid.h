@@ -17,14 +17,15 @@ struct {
   unsigned char attackdecay[MIDICHANNELS];
   unsigned char sustainrelease[MIDICHANNELS];
   unsigned char pwmhi[MIDICHANNELS];
+  unsigned char pwmlo[MIDICHANNELS];
   unsigned char lo[MIDICHANNELS];
   unsigned char hi[MIDICHANNELS];
   unsigned char playing[MIDICHANNELS];
-} voicestate = {{}, {}, {}, {}, {}, {}, {}};
+} voicestate = {{}, {}, {}, {}, {}, {}, {}, {}};
 
 // Configure MIDI channel to SID voice mappings.
 #define SID1            ((unsigned char*)0xd400)
 const struct {
   const unsigned char *sid[MIDICHANNELS];
   const unsigned char *voice[MIDICHANNELS];
-} baseptrs = {{ SID1, SID1, SID1 }, { BASEPTR(SID1, 1), BASEPTR(SID1, 2), BASEPTR(SID1, 3) }};
+} baseptrs = {{SID1, SID1, SID1}, {BASEPTR(SID1, 1), BASEPTR(SID1, 2), BASEPTR(SID1, 3)}};
