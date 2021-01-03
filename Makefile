@@ -10,4 +10,4 @@ vmp.d64: vmp.prg
 	c1541 -format diskname,id d64 vmp.d64 -attach vmp.d64 -write vmp.prg vmp
 
 upload: all
-	ncftpput -p "" -Cv c64 vmp.d64 /Temp/vmp.d64
+	ncftpput -p "" -Cv c64 vmp.prg /Temp/vmp.prg
