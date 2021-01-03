@@ -72,20 +72,26 @@ void updatevoice(unsigned char ch, unsigned char *voicereg) {
 }
 
 
-void handlenoteoff(unsigned char ch, unsigned char *voicereg) {
-  voicestate.control[ch] &= 0b11111110; // Gate off
-  updatevoice(ch, voicereg);
+void handlenoteoff(unsigned char ch, unsigned char *voicereg, unsigned char p) {
+  if (p == voicestate.playing[ch]) {
+    voicestate.control[ch] &= 0b11111110; // Gate off
+    updatevoice(ch, voicereg);
+  }
 }
 
 void handlenoteon(unsigned char ch, unsigned char *voicereg, unsigned char p, unsigned char v) {
   if (v == 0) {
-    handlenoteoff(ch, voicereg);
+    handlenoteoff(ch, voicereg, p);
   } else {
     voicestate.lo[ch] = ptosflo[p];
     voicestate.hi[ch] = ptosfhi[p];
     voicestate.control[ch] |= 0x1; // Gate on
     updatevoice(ch, voicereg);
+    voicestate.playing[ch] = p;
   }
+}
+
+void handlecc(unsigned char ch, unsigned char *voicereg, unsigned char cc, unsigned char v) {
 }
 
 void midiloop(void) {
@@ -113,7 +119,10 @@ void midiloop(void) {
 	  handlenoteon(ch, voicereg, buf[i+1], buf[i+2]);
 	  break;
 	case NOTEOFF:
-	  handlenoteoff(ch, voicereg);
+	  handlenoteoff(ch, voicereg, buf[i+1]);
+	  break;
+	case CC:
+	  handlecc(ch, voicereg, buf[i+1], buf[i+2]);
 	  break;
 	default:
 	  break;

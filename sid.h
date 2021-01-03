@@ -18,7 +18,8 @@ struct {
   unsigned char sustainrelease[MIDICHANNELS];
   unsigned char lo[MIDICHANNELS];
   unsigned char hi[MIDICHANNELS];
-} voicestate = {{}, {}, {}, {}, {}};
+  unsigned char playing[MIDICHANNELS];
+} voicestate = {{}, {}, {}, {}, {}, {}};
 
 // Configure MIDI channel to SID voice mappings.
 #define SID1            ((unsigned char*)0xd400)
