@@ -99,6 +99,11 @@ void handlenoteon(unsigned char ch, unsigned char *voicereg, unsigned char p, un
 
 void handlecc(unsigned char ch, unsigned char *voicereg, unsigned char cc, unsigned char v) {
   switch (cc) {
+  case 85:
+    {
+      voicestate.control[ch] &= 0x1;
+      voicestate.control[ch] |= (v << 1);
+    }
   case 73:
     {
       if (v > 0x0f) {
