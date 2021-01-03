@@ -11,10 +11,4 @@
 #define	NOTEON		0b10010000
 #define	NOTEOFF		0b10000000
 
-enum parserstateenum {
-		      PNONE,
-		      PNOTEONDB1,
-		      PNOTEOFFDB1,
-		      PNOTEONDB2,
-		      PNOTEOFFDB2,
-};
+unsigned char buf[128] = {};
