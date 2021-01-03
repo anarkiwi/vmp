@@ -10,5 +10,6 @@
 #define MIDICHANNELS	16
 #define	NOTEON		0b10010000
 #define	NOTEOFF		0b10000000
+#define CC              0b10110000
 
 unsigned char buf[128] = {};

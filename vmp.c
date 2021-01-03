@@ -13,9 +13,12 @@
 #include "midi.h"
 #include "sid.h"
 
+#define SCREENMEM       ((unsigned char*)0x0400)
+
+unsigned char i = 0;
+unsigned char j = 0;
 
 void initvessel(void) {
-  register unsigned char i = 0;
   unsigned char *sidreg = NULL;
   unsigned chmask = 0;
 
@@ -34,9 +37,26 @@ void initvessel(void) {
   VW(chmask & 0xff);
 }
 
+void updatevoice(unsigned char ch, unsigned char *voicereg) {
+  voicereg[0] = voicestate.lo[ch];
+  voicereg[1] = voicestate.hi[ch];
+  voicereg[5] = voicestate.attackdecay[ch];
+  voicereg[6] = voicestate.sustainrelease[ch];
+  voicereg[3] = voicestate.pwmhi[ch];
+  voicereg[4] = voicestate.control[ch];
+}
+
+void defaultvoice(unsigned char ch, unsigned char *voicereg) {
+  voicestate.control[ch] = 0x10; // Triangle
+  voicestate.attackdecay[ch] = 0b00000000; // No attack, no decay
+  voicestate.sustainrelease[ch] = 0b11110000; // Max sustain, no release
+  voicestate.lo[ch] = 0;
+  voicestate.hi[ch] = 0;
+  voicestate.pwmhi[ch] = 0;
+  updatevoice(ch, voicereg);
+}
+
 void initsid(void) {
-  register unsigned char i = 0;
-  register unsigned char j = 0;
   unsigned char *sidreg = NULL;
 
   for (i = 0; i < MIDICHANNELS; ++i) {
@@ -51,9 +71,7 @@ void initsid(void) {
   for (i = 0; i < MIDICHANNELS; ++i) {
     sidreg = (unsigned char*)baseptrs.voice[i];
     if (sidreg != NULL) {
-      voicestate.control[i] = 0x10; // Triangle
-      voicestate.attackdecay[i] = 0b00000000; // No attack, no decay
-      voicestate.sustainrelease[i] = 0b11110000; // Max sustain, no release
+      defaultvoice(i, sidreg);
     }
   }
 }
@@ -63,34 +81,63 @@ void init(void) {
   initsid();
 }
 
-void updatevoice(unsigned char ch, unsigned char *voicereg) {
-  voicereg[0] = voicestate.lo[ch];
-  voicereg[1] = voicestate.hi[ch];
-  voicereg[5] = voicestate.attackdecay[ch];
-  voicereg[6] = voicestate.sustainrelease[ch];
-  voicereg[4] = voicestate.control[ch];
-}
-
-
-void handlenoteoff(unsigned char ch, unsigned char *voicereg) {
-  voicestate.control[ch] &= 0b11111110; // Gate off
-  updatevoice(ch, voicereg);
+void handlenoteoff(unsigned char ch, unsigned char *voicereg, unsigned char p) {
+  if (p == voicestate.playing[ch]) {
+    voicereg[4] = voicestate.control[ch] & 0b11111110;
+  }
 }
 
 void handlenoteon(unsigned char ch, unsigned char *voicereg, unsigned char p, unsigned char v) {
   if (v == 0) {
-    handlenoteoff(ch, voicereg);
+    handlenoteoff(ch, voicereg, p);
   } else {
     voicestate.lo[ch] = ptosflo[p];
     voicestate.hi[ch] = ptosfhi[p];
     voicestate.control[ch] |= 0x1; // Gate on
     updatevoice(ch, voicereg);
+    voicestate.playing[ch] = p;
+  }
+}
+
+void handlecc(unsigned char ch, unsigned char *voicereg, unsigned char cc, unsigned char v) {
+  switch (cc) {
+  case 85:
+    {
+      voicestate.control[ch] &= 0x1;
+      voicestate.control[ch] |= (v << 1);
+    }
+    break;
+  case 20:
+    {
+      voicestate.pwmhi[ch] = (v << 1);
+      voicereg[3] = voicestate.pwmhi[ch];
+    }
+    break;
+  case 73:
+    {
+      if (v > 0x0f) {
+	v = 0x0f;
+      }
+      voicestate.attackdecay[ch] &= 0x0f;
+      voicestate.attackdecay[ch] |= (v << 4);
+    }
+    break;
+  case 72:
+    {
+      if (v > 0x0f) {
+	v = 0x0f;
+      }
+      voicestate.sustainrelease[ch] &= 0xf0;
+      voicestate.sustainrelease[ch] |= (v & 0x0f);
+    }
+    break;
+  default:
+    break;
   }
 }
 
 void midiloop(void) {
   register unsigned char bc = 0;
-  register unsigned char i = 0;
   unsigned char ch = 0;
   unsigned char *voicereg = NULL;
 
@@ -113,7 +160,10 @@ void midiloop(void) {
 	  handlenoteon(ch, voicereg, buf[i+1], buf[i+2]);
 	  break;
 	case NOTEOFF:
-	  handlenoteoff(ch, voicereg);
+	  handlenoteoff(ch, voicereg, buf[i+1]);
+	  break;
+	case CC:
+	  handlecc(ch, voicereg, buf[i+1], buf[i+2]);
 	  break;
 	default:
 	  break;
