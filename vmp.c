@@ -42,6 +42,7 @@ void updatevoice(unsigned char ch, unsigned char *voicereg) {
   voicereg[1] = voicestate.hi[ch];
   voicereg[5] = voicestate.attackdecay[ch];
   voicereg[6] = voicestate.sustainrelease[ch];
+  voicereg[3] = voicestate.pwmhi[ch];
   voicereg[4] = voicestate.control[ch];
 }
 
@@ -51,6 +52,7 @@ void defaultvoice(unsigned char ch, unsigned char *voicereg) {
   voicestate.sustainrelease[ch] = 0b11110000; // Max sustain, no release
   voicestate.lo[ch] = 0;
   voicestate.hi[ch] = 0;
+  voicestate.pwmhi[ch] = 0;
   updatevoice(ch, voicereg);
 }
 
@@ -104,6 +106,13 @@ void handlecc(unsigned char ch, unsigned char *voicereg, unsigned char cc, unsig
       voicestate.control[ch] &= 0x1;
       voicestate.control[ch] |= (v << 1);
     }
+    break;
+  case 20:
+    {
+      voicestate.pwmhi[ch] = (v << 1);
+      voicereg[3] = voicestate.pwmhi[ch];
+    }
+    break;
   case 73:
     {
       if (v > 0x0f) {

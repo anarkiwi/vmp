@@ -8,7 +8,7 @@
 
 #define SIDREGSIZE	24
 #define SIDVOICEREGSIZE 7
-#define SIDVOL(x, v)	(*(x+24) = v)
+#define SIDVOL(x, v)	x[24] = v
 
 #define BASEPTR(x, y)	{ x + ((y - 1) * SIDVOICEREGSIZE) }
 
@@ -16,10 +16,11 @@ struct {
   unsigned char control[MIDICHANNELS];
   unsigned char attackdecay[MIDICHANNELS];
   unsigned char sustainrelease[MIDICHANNELS];
+  unsigned char pwmhi[MIDICHANNELS];
   unsigned char lo[MIDICHANNELS];
   unsigned char hi[MIDICHANNELS];
   unsigned char playing[MIDICHANNELS];
-} voicestate = {{}, {}, {}, {}, {}, {}};
+} voicestate = {{}, {}, {}, {}, {}, {}, {}};
 
 // Configure MIDI channel to SID voice mappings.
 #define SID1            ((unsigned char*)0xd400)
