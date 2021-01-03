@@ -21,7 +21,7 @@ void initvessel(void) {
 
   VOUT;
   for (i = 0; i < MIDICHANNELS; ++i) {
-    sidreg = (unsigned char*)voicebase[i].sid;
+    sidreg = (unsigned char*)baseptrs.sid[i];
     chmask >>= 1;
     if (sidreg != NULL) {
       chmask |= 0x8000;
@@ -40,20 +40,20 @@ void initsid(void) {
   unsigned char *sidreg = NULL;
 
   for (i = 0; i < MIDICHANNELS; ++i) {
-    sidreg = (unsigned char*)voicebase[i].sid;
+    sidreg = (unsigned char*)baseptrs.sid[i];
     if (sidreg != NULL) {
       for (j = 0; j < SIDREGSIZE; ++j) {
-	*(sidreg + j) = 0;
+	sidreg[j] = 0;
       }
       SIDVOL(sidreg, 0xf);
     }
   }
   for (i = 0; i < MIDICHANNELS; ++i) {
-    sidreg = (unsigned char*)voicebase[i].voice;
+    sidreg = (unsigned char*)baseptrs.voice[i];
     if (sidreg != NULL) {
-      *(sidreg+4) = 0x10; // Triangle
-      *(sidreg+5) = 0b00000000; // No attack, no decay
-      *(sidreg+6) = 0b11110000; // Max sustain, no release
+      voicestate.control[i] = 0x10; // Triangle
+      voicestate.attackdecay[i] = 0b00000000; // No attack, no decay
+      voicestate.sustainrelease[i] = 0b11110000; // Max sustain, no release
     }
   }
 }
@@ -63,90 +63,63 @@ void init(void) {
   initsid();
 }
 
-void handlenoteoff(unsigned char ch, unsigned char p, unsigned char v) {
-  unsigned char *voicereg = (unsigned char*)voicebase[ch].voice;
-  if (voicereg == NULL) {
-    return;
-  }
-  *(voicereg+4) = 0x10; // Triangle
+void updatevoice(unsigned char ch, unsigned char *voicereg) {
+  voicereg[0] = voicestate.lo[ch];
+  voicereg[1] = voicestate.hi[ch];
+  voicereg[5] = voicestate.attackdecay[ch];
+  voicereg[6] = voicestate.sustainrelease[ch];
+  voicereg[4] = voicestate.control[ch];
 }
 
-void handlenoteon(unsigned char ch, unsigned char p, unsigned char v) {
-  unsigned char *voicereg = (unsigned char*)voicebase[ch].voice;
-  if (voicereg == NULL) {
-    return;
-  }
+
+void handlenoteoff(unsigned char ch, unsigned char *voicereg) {
+  voicestate.control[ch] &= 0b11111110; // Gate off
+  updatevoice(ch, voicereg);
+}
+
+void handlenoteon(unsigned char ch, unsigned char *voicereg, unsigned char p, unsigned char v) {
   if (v == 0) {
-    handlenoteoff(ch, p, 0);
+    handlenoteoff(ch, voicereg);
   } else {
-    *voicereg = ptosflo[p];
-    *(voicereg+1) = ptosfhi[p];
-    *(voicereg+4) = 0x11; // Gate on
+    voicestate.lo[ch] = ptosflo[p];
+    voicestate.hi[ch] = ptosfhi[p];
+    voicestate.control[ch] |= 0x1; // Gate on
+    updatevoice(ch, voicereg);
   }
 }
 
 void midiloop(void) {
-  unsigned char bc = 0;
+  register unsigned char bc = 0;
+  register unsigned char i = 0;
   unsigned char ch = 0;
-  unsigned char msg = 0;
-  unsigned char db1 = 0;
-  enum parserstateenum parserstate = PNONE;
-  unsigned char cmd = 0;
+  unsigned char *voicereg = NULL;
 
   for (;;) {
     VIN;
     bc = VR;
-    while (bc--) {
-      switch (parserstate) {
-      case PNONE:
-	{
-	  msg = VR;
-	  if (msg & 0b10000000) {
-	    cmd = msg & 0b11110000;
-	    ch =  msg & 0b00001111;
-	    switch (cmd) {
-	    case NOTEON:
-	      parserstate = PNOTEONDB1;
-	      break;
-	    case NOTEOFF:
-	      parserstate = PNOTEOFFDB1;
-	      break;
-	    default:
-	      break;
-	    }
-	  }
-	}
-	break;
-      case PNOTEONDB1:
-	{
-	  db1 = VR7;
-	  parserstate = PNOTEONDB2;
-	}
-	break;
-      case PNOTEOFFDB1:
-	{
-	  db1 = VR7;
-	  parserstate = PNOTEOFFDB2;
-	}
-	break;
-      case PNOTEONDB2:
-	{
-	  handlenoteon(ch, db1, VR7);
-	  parserstate = PNONE;
-	}
-	break;
-      case PNOTEOFFDB2:
-	{
-	  handlenoteoff(ch, db1, VR7);
-	  parserstate = PNONE;
-	}
-	break;
-      default:
-	parserstate = PNONE;
-	break;
+    if (bc) {
+      // Rapidly drain Vessel buffer.
+      for (i = 0; i < bc; ++i) {
+	buf[i] = VR;
       }
     }
     VOUT;
+    for (i = 0; i < bc; i += 3) {
+      ch = buf[i] & 0b00001111;
+      voicereg = (unsigned char*)baseptrs.voice[ch];
+      if (voicereg) {
+	switch (buf[i] & 0b11110000) {
+	case NOTEON:
+	  handlenoteon(ch, voicereg, buf[i+1], buf[i+2]);
+	  break;
+	case NOTEOFF:
+	  handlenoteoff(ch, voicereg);
+	  break;
+	default:
+	  break;
+	}
+      }
+    }
   }
 }
 
