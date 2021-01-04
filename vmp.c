@@ -58,6 +58,18 @@ void defaultvoice(unsigned char ch, unsigned char *voicereg) {
   updatevoice(ch, voicereg);
 }
 
+void defaultsid(unsigned char ch) {
+  unsigned char *sidreg = (unsigned char*)baseptrs.sid[i];
+  sidstate.filterhi[ch] = 0;
+  sidstate.filterlo[ch] = 0;
+  sidstate.filterresroute[ch] = 0;
+  sidstate.filtermodvol[ch] = 0b000011111;
+  sidreg[21] = sidstate.filterlo[ch];
+  sidreg[22] = sidstate.filterhi[ch];
+  sidreg[23] = sidstate.filterresroute[ch];
+  sidreg[24] = sidstate.filtermodvol[ch];
+}
+
 void initsid(void) {
   unsigned char *sidreg = NULL;
 
@@ -67,7 +79,7 @@ void initsid(void) {
       for (j = 0; j < SIDREGSIZE; ++j) {
 	sidreg[j] = 0;
       }
-      SIDVOL(sidreg, 0xf);
+      defaultsid(i);
     }
   }
   for (i = 0; i < MIDICHANNELS; ++i) {
@@ -83,9 +95,13 @@ void init(void) {
   initsid();
 }
 
+void gateoff(unsigned char ch, unsigned char *voicereg) {
+  voicereg[4] = voicestate.control[ch] & 0b11111110;
+}
+
 void handlenoteoff(unsigned char ch, unsigned char *voicereg, unsigned char p) {
   if (p == voicestate.playing[ch]) {
-    voicereg[4] = voicestate.control[ch] & 0b11111110;
+    gateoff(ch, voicereg);
   }
 }
 
@@ -105,7 +121,38 @@ void handlenoteon(unsigned char ch, unsigned char *voicereg, unsigned char p, un
 #define CCLONIB(x, y) { if (y > 0x0f) { y = 0x0f; } x &= 0xf0; x |= (y & 0x0f); }
 
 void handlecc(unsigned char ch, unsigned char *voicereg, unsigned char cc, unsigned char v) {
+  unsigned char *sidreg = (unsigned char*) baseptrs.sid[ch];
+  // https://www.midi.org/specifications-old/item/table-3-control-change-messages-data-bytes-2
   switch (cc) {
+  case 123:
+    gateoff(ch, voicereg);
+    break;
+  case 121:
+    {
+      defaultvoice(ch, voicereg);
+      if (v) {
+	defaultsid(ch);
+      }
+    }
+    break;
+  case 89: // filter route
+    {
+      CCLONIB(sidstate.filterresroute[ch], v);
+      sidreg[23] = sidstate.filterresroute[ch];
+    }
+    break;
+  case 87: // filter res
+    {
+      CCHINIB(sidstate.filterresroute[ch], v);
+      sidreg[23] = sidstate.filterresroute[ch];
+    }
+    break;
+  case 86: // filter mode
+    {
+      CCHINIB(sidstate.filtermodvol[ch], v);
+      sidreg[24] = sidstate.filtermodvol[ch];
+    }
+    break;
   case 85: // control
     {
       voicestate.control[ch] &= 0x1;
@@ -130,6 +177,17 @@ void handlecc(unsigned char ch, unsigned char *voicereg, unsigned char cc, unsig
       voicestate.pwmlo[ch] = ((v & 0b00000111) << 5);
       voicereg[3] = voicestate.pwmhi[ch];
       voicereg[2] = voicestate.pwmlo[ch];
+    }
+    break;
+  case 30: // filter cutoff
+    {
+      sidreg[22] = (v << 1);
+    }
+    break;
+  case 7: // volume
+    {
+      CCLONIB(sidstate.filtermodvol[ch], v);
+      sidreg[24] = sidstate.filtermodvol[ch];
     }
     break;
   default:
