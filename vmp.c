@@ -58,6 +58,12 @@ void defaultvoice(unsigned char ch, unsigned char *voicereg) {
   updatevoice(ch, voicereg);
 }
 
+void defaultsid(unsigned char ch) {
+  unsigned char *sidreg = (unsigned char*)baseptrs.sid[i];
+  sidstate.filtermodvol[ch] = 0b000011111;
+  sidreg[24] = sidstate.filtermodvol[ch];
+}
+
 void initsid(void) {
   unsigned char *sidreg = NULL;
 
@@ -67,7 +73,7 @@ void initsid(void) {
       for (j = 0; j < SIDREGSIZE; ++j) {
 	sidreg[j] = 0;
       }
-      SIDVOL(sidreg, 0xf);
+      defaultsid(i);
     }
   }
   for (i = 0; i < MIDICHANNELS; ++i) {
@@ -105,6 +111,8 @@ void handlenoteon(unsigned char ch, unsigned char *voicereg, unsigned char p, un
 #define CCLONIB(x, y) { if (y > 0x0f) { y = 0x0f; } x &= 0xf0; x |= (y & 0x0f); }
 
 void handlecc(unsigned char ch, unsigned char *voicereg, unsigned char cc, unsigned char v) {
+  unsigned char *sidreg = NULL;
+  // https://www.midi.org/specifications-old/item/table-3-control-change-messages-data-bytes-2
   switch (cc) {
   case 85: // control
     {
@@ -130,6 +138,13 @@ void handlecc(unsigned char ch, unsigned char *voicereg, unsigned char cc, unsig
       voicestate.pwmlo[ch] = ((v & 0b00000111) << 5);
       voicereg[3] = voicestate.pwmhi[ch];
       voicereg[2] = voicestate.pwmlo[ch];
+    }
+    break;
+  case 7: // volume
+    {
+      CCLONIB(sidstate.filtermodvol[ch], v);
+      sidreg = baseptrs.sid[ch];
+      sidreg[24] = sidstate.filtermodvol[ch];
     }
     break;
   default:

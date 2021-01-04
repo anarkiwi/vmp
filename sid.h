@@ -23,6 +23,10 @@ struct {
   unsigned char playing[MIDICHANNELS];
 } voicestate = {{}, {}, {}, {}, {}, {}, {}, {}};
 
+struct {
+  unsigned filtermodvol[MIDICHANNELS];
+} sidstate = {{}};
+
 // Configure MIDI channel to SID voice mappings.
 #define SID1            ((unsigned char*)0xd400)
 const struct {
