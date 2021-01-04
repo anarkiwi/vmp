@@ -11,3 +11,20 @@ with multiple channels (whereas other interfaces support only single channels wi
 To use VMP, install a Vessel interface, and use MIDI channels 1 to 3 in your DAW for the built in SID's voices 1 to 3.
 
 For additional SIDs or to change the default channel mapping, set the SID base addresses and channel mappings in sid.h, and recompile.
+
+## Supported MIDI CC messages
+|CC|Default|Description
+|--|--|--
+|123||Note off
+|121||Reset SID and voice CCs (if v > 0, reset just voice CCs)
+|89|0|Filter routing
+|87|0|Filter resonance
+|86|0|Filter mode (most significant 4 bits of main control register)
+|85|8|Most significant 7 bits of voice control register.
+|75|0|Decay
+|74|15|Sustain
+|73|0|Attack
+|72|0|Release
+|31|0|Most significant 7 bits of PWM control registers
+|30|0|Most significant 7 bits of filter cutoff
+|7|15|Volume of all voices on this SID (least significant 4 bits of main control register)

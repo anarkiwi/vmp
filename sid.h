@@ -25,7 +25,10 @@ struct {
 
 struct {
   unsigned filtermodvol[MIDICHANNELS];
-} sidstate = {{}};
+  unsigned char filterhi[MIDICHANNELS];
+  unsigned char filterlo[MIDICHANNELS];
+  unsigned char filterresroute[MIDICHANNELS];
+} sidstate = {{}, {}, {}, {}};
 
 // Configure MIDI channel to SID voice mappings.
 #define SID1            ((unsigned char*)0xd400)
