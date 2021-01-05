@@ -1,9 +1,12 @@
 all: vmp.d64 vmp.prg
 
+pbmult.h: ./genpbmult.py
+	./genpbmult.py
+
 freq.h: genfreq.py
 	./genfreq.py
 
-vmp.prg: vmp.c freq.h midi.h sid.h vessel.h
+vmp.prg: vmp.c freq.h midi.h sid.h vessel.h pbmult.h
 	cl65 -Osir -Cl vmp.c -o vmp.prg
 
 vmp.d64: vmp.prg

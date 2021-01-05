@@ -13,14 +13,14 @@
 #define BASEPTR(x, y)	{ x + ((y - 1) * SIDVOICEREGSIZE) }
 
 struct {
+  unsigned freq[MIDICHANNELS];
   unsigned char control[MIDICHANNELS];
   unsigned char attackdecay[MIDICHANNELS];
   unsigned char sustainrelease[MIDICHANNELS];
   unsigned char pwmhi[MIDICHANNELS];
   unsigned char pwmlo[MIDICHANNELS];
-  unsigned char lo[MIDICHANNELS];
-  unsigned char hi[MIDICHANNELS];
   unsigned char playing[MIDICHANNELS];
+  unsigned char pb[MIDICHANNELS];
 } voicestate = {{}, {}, {}, {}, {}, {}, {}, {}};
 
 struct {
