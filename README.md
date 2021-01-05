@@ -13,6 +13,8 @@ To use VMP, install a Vessel interface, and use MIDI channels 1 to 3 in your DAW
 For additional SIDs or to change the default channel mapping, set the SID base addresses and channel mappings in sid.h, and recompile.
 
 ## Supported MIDI CC messages
+Pitchbends are supported.
+
 |CC|Default|Description
 |--|--|--
 |123||Note off

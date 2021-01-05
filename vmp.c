@@ -11,6 +11,7 @@
 #include "vessel.h"
 #include "freq.h"
 #include "midi.h"
+#include "pbmult.h"
 #include "sid.h"
 
 #define SCREENMEM       ((unsigned char*)0x0400)
@@ -37,9 +38,13 @@ void initvessel(void) {
   VW(chmask & 0xff);
 }
 
+void applyfreq(unsigned char ch, unsigned char *voicereg) {
+  voicereg[0] = voicestate.freq[ch] & 0xff;
+  voicereg[1] = voicestate.freq[ch] >> 8;
+}
+
 void updatevoice(unsigned char ch, unsigned char *voicereg) {
-  voicereg[0] = voicestate.lo[ch];
-  voicereg[1] = voicestate.hi[ch];
+  applyfreq(ch, voicereg);
   voicereg[2] = voicestate.pwmlo[ch];
   voicereg[3] = voicestate.pwmhi[ch];
   voicereg[5] = voicestate.attackdecay[ch];
@@ -48,13 +53,13 @@ void updatevoice(unsigned char ch, unsigned char *voicereg) {
 }
 
 void defaultvoice(unsigned char ch, unsigned char *voicereg) {
-  voicestate.lo[ch] = 0;
-  voicestate.hi[ch] = 0;
+  voicestate.freq[ch] = 0;
   voicestate.pwmlo[ch] = 0;
   voicestate.pwmhi[ch] = 0;
   voicestate.attackdecay[ch] = 0b00000000; // No attack, no decay
   voicestate.sustainrelease[ch] = 0b11110000; // Max sustain, no release
   voicestate.control[ch] = 0x10; // Triangle
+  voicestate.pb[ch] = 64; // No pitchbend
   updatevoice(ch, voicereg);
 }
 
@@ -105,15 +110,41 @@ void handlenoteoff(unsigned char ch, unsigned char *voicereg, unsigned char p) {
   }
 }
 
+void calcpb(unsigned char ch) {
+  // TODO: optimize
+  unsigned char p = voicestate.playing[ch];
+  unsigned char pb = voicestate.pb[ch];
+  unsigned char hp = p + pbrange;
+  unsigned char lp = p - pbrange;
+  unsigned diff = 0;
+  if (hp > maxpitch) {
+    hp = maxpitch;
+  }
+  if (p < pbrange) {
+    lp = 0;
+  }
+  voicestate.freq[ch] = ptosf[p];
+  if (pb > pbmults) {
+    diff = ptosf[hp] - ptosf[p];
+    diff /= pbdiv;
+    diff *= pbmult[pb - pbmults];
+    voicestate.freq[ch] += diff;
+  } else if (pb < pbmults) {
+    diff = ptosf[p] - ptosf[lp];
+    diff /= pbdiv;
+    diff *= pbmult[pbmults - pb];
+    voicestate.freq[ch] -= diff;
+  }
+}
+
 void handlenoteon(unsigned char ch, unsigned char *voicereg, unsigned char p, unsigned char v) {
   if (v == 0) {
     handlenoteoff(ch, voicereg, p);
-  } else {
-    voicestate.lo[ch] = ptosflo[p];
-    voicestate.hi[ch] = ptosfhi[p];
+  } else if (p <= maxpitch) {
+    voicestate.playing[ch] = p;
+    calcpb(ch);
     voicestate.control[ch] |= 0x1; // Gate on
     updatevoice(ch, voicereg);
-    voicestate.playing[ch] = p;
   }
 }
 
@@ -195,6 +226,12 @@ void handlecc(unsigned char ch, unsigned char *voicereg, unsigned char cc, unsig
   }
 }
 
+void handlepb(unsigned char ch, unsigned char *voicereg, unsigned char pb) {
+  voicestate.pb[ch] = pb;
+  calcpb(ch);
+  applyfreq(ch, voicereg);
+}
+
 void midiloop(void) {
   register unsigned char bc = 0;
   unsigned char ch = 0;
@@ -223,6 +260,9 @@ void midiloop(void) {
 	  break;
 	case CC:
 	  handlecc(ch, voicereg, buf[i+1], buf[i+2]);
+	  break;
+	case PITCHBEND:
+	  handlepb(ch, voicereg, buf[i+2]);
 	  break;
 	default:
 	  break;
