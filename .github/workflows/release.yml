@@ -8,7 +8,7 @@ on:
       - 'v*'
 
 jobs:
-  test:
+  release:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -27,7 +27,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        upload_url: ${{ github.event.release.upload_url }}
         asset_path: ./vmp-pal.prg
         asset_name: vmp-pal.prg
         asset_content_type: application/octet-stream
