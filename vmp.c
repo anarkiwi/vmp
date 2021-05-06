@@ -16,12 +16,11 @@
 
 #define SCREENMEM       ((unsigned char*)0x0400)
 
-unsigned char i = 0;
-unsigned char j = 0;
 
 void initvessel(void) {
   unsigned char *sidreg = NULL;
   unsigned chmask = 0;
+  unsigned char i = 0;
 
   VOUT;
   for (i = 0; i < MIDICHANNELS; ++i) {
@@ -64,7 +63,7 @@ void defaultvoice(unsigned char ch, unsigned char *voicereg) {
 }
 
 void defaultsid(unsigned char ch) {
-  unsigned char *sidreg = (unsigned char*)baseptrs.sid[i];
+  unsigned char *sidreg = (unsigned char*)baseptrs.sid[ch];
   sidstate.filterhi[ch] = 0;
   sidstate.filterlo[ch] = 0;
   sidstate.filterresroute[ch] = 0;
@@ -77,6 +76,8 @@ void defaultsid(unsigned char ch) {
 
 void initsid(void) {
   unsigned char *sidreg = NULL;
+  unsigned char i = 0;
+  unsigned char j = 0;
 
   for (i = 0; i < MIDICHANNELS; ++i) {
     sidreg = (unsigned char*)baseptrs.sid[i];
@@ -236,6 +237,8 @@ void midiloop(void) {
   register unsigned char bc = 0;
   unsigned char ch = 0;
   unsigned char *voicereg = NULL;
+  unsigned char i = 0;
+  unsigned char b = 0;
 
   for (;;) {
     VIN;
@@ -243,7 +246,9 @@ void midiloop(void) {
     if (bc) {
       // Rapidly drain Vessel buffer.
       for (i = 0; i < bc; ++i) {
-	buf[i] = VR;
+        b = VR;
+        buf[i] = b;
+        *(SCREENMEM + i) = b;
       }
     }
     VOUT;
