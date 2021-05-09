@@ -105,45 +105,48 @@ void gateoff(unsigned char ch, unsigned char *voicereg) {
   voicereg[4] = voicestate.control[ch] & 0b11111110;
 }
 
-void handlenoteoff(unsigned char ch, unsigned char *voicereg, unsigned char p) {
-  if (p == voicestate.playing[ch]) {
-    gateoff(ch, voicereg);
-  }
+void handlenoteoff(unsigned char ch, unsigned char *voicereg) {
+  gateoff(ch, voicereg);
 }
 
-void calcpb(unsigned char ch) {
+void calcpb(unsigned char ch, unsigned char pb) {
   // TODO: optimize
-  unsigned char p = voicestate.playing[ch];
-  unsigned char pb = voicestate.pb[ch];
-  unsigned char hp = p + pbrange;
-  unsigned char lp = p - pbrange;
   unsigned diff = 0;
-  if (hp > maxpitch) {
-    hp = maxpitch;
-  }
-  if (p < pbrange) {
-    lp = 0;
-  }
-  voicestate.freq[ch] = ptosf[p];
   if (pb > pbmults) {
-    diff = ptosf[hp] - ptosf[p];
-    diff /= pbdiv;
-    diff *= pbmult[pb - pbmults];
+    diff = voicestate.pb_highdiff[ch] * pbmult[pb - pbmults];
     voicestate.freq[ch] += diff;
   } else if (pb < pbmults) {
-    diff = ptosf[p] - ptosf[lp];
-    diff /= pbdiv;
-    diff *= pbmult[pbmults - pb];
+    diff = voicestate.pb_lowdiff[ch] * pbmult[pbmults - pb];
     voicestate.freq[ch] -= diff;
   }
 }
 
+void applypb(unsigned char ch) {
+  unsigned char p = voicestate.playing[ch];
+  unsigned char pb = voicestate.pb[ch];
+  voicestate.freq[ch] = ptosf[p];
+  if (pb != pbmults) {
+    calcpb(ch, pb);
+  }
+}
+
 void handlenoteon(unsigned char ch, unsigned char *voicereg, unsigned char p, unsigned char v) {
-  if (v == 0) {
-    handlenoteoff(ch, voicereg, p);
-  } else if (p <= maxpitch) {
+  unsigned char hp = p + pbrange;
+  unsigned char lp = 0;
+
+  handlenoteoff(ch, voicereg);
+  if (v > 0 && p <= maxpitch) {
     voicestate.playing[ch] = p;
-    calcpb(ch);
+    hp = p + pbrange;
+    if (p > maxpitch) {
+      hp = maxpitch;
+    }
+    voicestate.pb_highdiff[ch] = (ptosf[hp] - ptosf[p]) / pbdiv;
+    if (p > pbrange) {
+      lp = p - pbrange;
+    }
+    voicestate.pb_lowdiff[ch] = (ptosf[p] - ptosf[lp]) / pbdiv;
+    applypb(ch);
     voicestate.control[ch] |= 0x1; // Gate on
     updatevoice(ch, voicereg);
   }
@@ -228,17 +231,19 @@ void handlecc(unsigned char ch, unsigned char *voicereg, unsigned char cc, unsig
 }
 
 void handlepb(unsigned char ch, unsigned char *voicereg, unsigned char pb) {
-  voicestate.pb[ch] = pb;
-  calcpb(ch);
-  applyfreq(ch, voicereg);
+  if (pb != voicestate.pb[ch]) {
+    voicestate.pb[ch] = pb;
+    applypb(ch);
+    applyfreq(ch, voicereg);
+  }
 }
 
 void midiloop(void) {
   register unsigned char bc = 0;
+  register unsigned char b = 0;
   unsigned char ch = 0;
   unsigned char *voicereg = NULL;
-  unsigned char i = 0;
-  unsigned char b = 0;
+  register unsigned char i = 0;
 
   for (;;) {
     VIN;
@@ -261,7 +266,7 @@ void midiloop(void) {
 	  handlenoteon(ch, voicereg, buf[i+1], buf[i+2]);
 	  break;
 	case NOTEOFF:
-	  handlenoteoff(ch, voicereg, buf[i+1]);
+	  handlenoteoff(ch, voicereg);
 	  break;
 	case CC:
 	  handlecc(ch, voicereg, buf[i+1], buf[i+2]);
