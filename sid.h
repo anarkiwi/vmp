@@ -21,7 +21,9 @@ struct {
   unsigned char pwmlo[MIDICHANNELS];
   unsigned char playing[MIDICHANNELS];
   unsigned char pb[MIDICHANNELS];
-} voicestate = {{}, {}, {}, {}, {}, {}, {}, {}};
+  unsigned pb_highdiff[MIDICHANNELS];
+  unsigned pb_lowdiff[MIDICHANNELS];
+} voicestate = {{}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
 
 struct {
   unsigned filtermodvol[MIDICHANNELS];
