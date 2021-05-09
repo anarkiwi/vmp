@@ -15,8 +15,7 @@ jobs:
     - name: build 
       run: |
         ./build.sh
-    - name: Upload Release Asset
-      id: upload-release-asset
+    - name: upload PAL PRG
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -24,4 +23,13 @@ jobs:
         upload_url: ${{ github.event.release.upload_url }}
         asset_path: ./vmp.prg
         asset_name: vmp-pal.prg
+        asset_content_type: application/octet-stream
+    - name: upload PAL D64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./vmp.d64
+        asset_name: vmp-pal.d64
         asset_content_type: application/octet-stream
