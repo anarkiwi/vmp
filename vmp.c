@@ -23,6 +23,7 @@ void initvessel(void) {
   unsigned char i = 0;
 
   VOUT;
+  VCMD(0); // reset
   for (i = 0; i < MIDICHANNELS; ++i) {
     sidreg = (unsigned char*)baseptrs.sid[i];
     chmask >>= 1;
