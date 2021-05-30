@@ -33,3 +33,22 @@ jobs:
         asset_path: ./vmp.d64
         asset_name: vmp-pal.d64
         asset_content_type: application/octet-stream
+    - name: upload D420 PAL PRG
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./vmp-d420.prg
+        asset_name: vmp-d420-pal.prg
+        asset_content_type: application/octet-stream
+    - name: upload D420 PAL D64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./vmp-d420.d64
+        asset_name: vmp-d420-pal.d64
+        asset_content_type: application/octet-stream
+

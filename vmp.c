@@ -7,6 +7,7 @@
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+#include <6502.h>
 #include <stdio.h>
 #include "vessel.h"
 #include "freq.h"
@@ -39,17 +40,21 @@ void initvessel(void) {
 }
 
 void applyfreq(unsigned char ch, unsigned char *voicereg) {
+  SEI();
   voicereg[0] = voicestate.freq[ch] & 0xff;
   voicereg[1] = voicestate.freq[ch] >> 8;
+  CLI();
 }
 
 void updatevoice(unsigned char ch, unsigned char *voicereg) {
   applyfreq(ch, voicereg);
+  SEI();
   voicereg[2] = voicestate.pwmlo[ch];
   voicereg[3] = voicestate.pwmhi[ch];
   voicereg[5] = voicestate.attackdecay[ch];
   voicereg[6] = voicestate.sustainrelease[ch];
   voicereg[4] = voicestate.control[ch];
+  CLI();
 }
 
 void defaultvoice(unsigned char ch, unsigned char *voicereg) {
